@@ -26,10 +26,10 @@ for mapId = 1:length(Data.initial_maps)
         map.corres);
     rowIds = ((map.sId-1)*m + 2):(map.sId*m+1);
     colIds = ((map.tId-1)*m + 2):(map.tId*m+1);
-    C(rowIds, colIds) = C_st;
+    C(colIds, rowIds) = C_st';
 end
 
-rootId = 1;
+rootId = Para.rootId;
 IDX = [1:(1+(Para.rootId-1)*m+m0), (2+Para.rootId*m):(1+m*n)];
 SDP.C = C(IDX, IDX);
 SDP.C = (SDP.C+SDP.C')/2;
@@ -45,6 +45,11 @@ mt = length(Sample_t.sampleIds);
 sVIds = Sample_s.sampleIds;
 tVIds = corres_st(2, sVIds);
 C_st = Sample_t.distMat(:, tVIds)';
+
+tSIds = Sample_t.closestSampleIds(tVIds);
+sDis = Sample_s.distMat;
+tDis = Sample_t.distMat(tSIds, tSIds);
+h = 10;
 
 function [A,b, ids_geq_0, ids_leq_1] = gen_constraints(n, m0, m, rootId)
 % Generate the constraints

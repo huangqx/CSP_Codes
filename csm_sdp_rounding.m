@@ -15,6 +15,10 @@ consistentSampleIds = kron(ones(1,n), (1:m0)');
 for i = 1:(Para.rootId-1)
     colIds = (1+(i-1)*m):(i*m);
     Y = Y_lr(:, colIds);
+    Y_exp = [1-Y; 10*ones(m-m0,m)];
+    sol = lapjv(Y_exp, 0.0);
+    sol = sol(1:m0);
+    consistentSampleIds(:,i) = sol';
 end
 
 for i = (Para.rootId+1):n

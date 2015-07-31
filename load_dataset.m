@@ -15,6 +15,9 @@ for i = 1:(length(temp)-2)
         id = id + 1;
     end
 end
+for i = 1:20
+    objNames{i} = sprintf('%d', i);
+end
 
 % load shapes
 fprintf('Loading shapes...\n');

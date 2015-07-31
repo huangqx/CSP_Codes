@@ -39,12 +39,12 @@ SAMPLE.distMat = zeros(numSamples, numPoints);
 dist = graphshortestpath(G, 1);
 [maxDis, nextSampleId] = max(dist);
 % distance vector for picking the next sample
-distVec = dist;
+distVec = ones(1, numPoints)*1000;
 
 % Iterative sampling
 for i = 1:numSamples
     if i <= length(shape.featurePointIds)
-        nextSampleId = shape.featurePointIds(i);
+%        nextSampleId = shape.featurePointIds(i);
     end
     SAMPLE.sampleIds(i) = nextSampleId;
     dist = graphshortestpath(G, nextSampleId);

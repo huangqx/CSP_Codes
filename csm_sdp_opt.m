@@ -50,7 +50,7 @@ for iter = 1:Para.nIterations
     X = (X+X')/2;
     if mod(iter, 10) == 0
         r = norm(SDP.A*reshape(X, [dim*dim,1]) - SDP.b);
-        fprintf(' iter = %d, mu = %.3f, norm(A(X)-b) = %.4f\n', iter, mu, r);
+        fprintf(' iter = %d, e = %f, mu = %.3f, norm(A(X)-b) = %.4f\n', iter, sum(sum(SDP.C.*X)), mu, r);
     end
     mu = mu*Para.rho;
 end
