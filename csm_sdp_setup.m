@@ -13,20 +13,25 @@ function [SDP] = csm_sdp_setup(Data, Para)
 %  SDP.A, SDP.b: the linear constraint: SDP.A(X) = SDP.b
 %  SDP.IdsZ: indices of elements that are non negative.
 
-m = Para.numSamples;
-m0 = Para.numMatchedPoints;
+m = Para.m;
+m0 = Para.m0;
 n = length(Data.shapes);
 dim = 1+m*n;
 
+[sampleMaps, distMats] = vertexMap_2_sampleMaps(Data, m);
+
 C = zeros(dim, dim);
-for mapId = 1:length(Data.initial_maps)
-    map = Data.initial_maps{mapId};
+for mapId = 1:length(sampleMaps)
+    map = sampleMaps{mapId};
+%    [C_st] = pairwise_data_matrix(distMats{map.tId},...
+%        map.corres, m0, m);
     [C_st] = pairwise_data_matrix(Data.SAMPLE{map.sId},...
         Data.SAMPLE{map.tId},...
-        map.corres);
+        Data.initial_maps{mapId}.corres, m0, m);
+
     rowIds = ((map.sId-1)*m + 2):(map.sId*m+1);
     colIds = ((map.tId-1)*m + 2):(map.tId*m+1);
-    C(colIds, rowIds) = C_st';
+    C(rowIds, colIds) = C_st;
 end
 
 rootId = Para.rootId;
@@ -37,19 +42,57 @@ SDP.C = (SDP.C+SDP.C')/2;
 [SDP.A, SDP.b, SDP.ids_geq_0, SDP.ids_leq_1] = gen_constraints(...
     n, m0, m, rootId);
 
-function [C_st] = pairwise_data_matrix(Sample_s, Sample_t, corres_st)
+function [sampleMaps, distMats] = vertexMap_2_sampleMaps(Data, m)
+% Convert maps between vertices into maps between sample points (m per
+% shape)
+
+for shapeId = 1:length(Data.SAMPLE)
+    Sample = Data.SAMPLE{shapeId};
+    % Extract distance matrix and closestSampleIds
+    distMats{shapeId} = Sample.distMat(1:m, Sample.sampleIds(1:m));
+    [s, closestSampleIds{shapeId}] = min(Sample.distMat(1:m,:));
+end
+
+for mapId = 1:length(Data.initial_maps)
+    map = Data.initial_maps{mapId};
+    sampleIds_s = 1:m;
+    vertexIds_s = Data.SAMPLE{map.sId}.sampleIds(sampleIds_s);
+    vertexIds_t = map.corres(2, vertexIds_s);
+    sampleIds_t = closestSampleIds{map.tId}(vertexIds_t);
+    map.corres = [sampleIds_s;sampleIds_t];
+    sampleMaps{mapId} = map;
+end
+
+function [C_st] = pairwise_data_matrix(Sample_s, Sample_t, corres_st, m0, m)
 %
-ms = length(Sample_s.sampleIds);
-mt = length(Sample_t.sampleIds);
-
-sVIds = Sample_s.sampleIds;
+%C_st = min(1, distMat_t(corres_st(2,:),:));
+sVIds = Sample_s.sampleIds(1:m);
 tVIds = corres_st(2, sVIds);
-C_st = Sample_t.distMat(:, tVIds)';
+C_st = min(1, Sample_t.distMat(1:m, tVIds)');
 
-tSIds = Sample_t.closestSampleIds(tVIds);
-sDis = Sample_s.distMat;
-tDis = Sample_t.distMat(tSIds, tSIds);
-h = 10;
+% Favor points that are sampled early
+t = (floor(m/m0)+1)^2;
+v = 1:((t-1)/(m-1)):t;
+v = sqrt(v);
+d1 = power(v, 0.5);
+d2 = power(v, 0.5);
+C_st = diag(d1)*C_st*diag(d2);
+
+% sVIds = Sample_s.sampleIds;
+% tVIds = corres_st(2, sVIds);
+% tSIds = Sample_t.closestSampleIds(tVIds);
+% sDis = Sample_s.distMat(:, sVIds);
+% tDis = Sample_t.distMat(tSIds, Sample_t.sampleIds(tSIds));
+% scale = mean(mean(tDis))/mean(mean(sDis));
+% sDis = sDis*scale;
+% sDis = sDis + 0.1;
+% tDis = tDis + 0.1;
+% dif = abs(sDis - tDis);
+% ave = (sDis + tDis)/2;
+% ratio = dif./ave;
+% ratio = sqrt(mean(mean(ratio.*ratio)));
+% w = exp(-ratio^2/0.08);
+% %C_st = C_st*w;
 
 function [A,b, ids_geq_0, ids_leq_1] = gen_constraints(n, m0, m, rootId)
 % Generate the constraints

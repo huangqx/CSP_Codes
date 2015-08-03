@@ -54,7 +54,7 @@ for i = 1:numSamples
     SAMPLE.closestSampleIds(ids) = i;
     [maxDis, nextSampleId] = max(distVec);
 end
-fprintf(', density = %f.\n', maxDis);
+fprintf('density = %f.\n', maxDis);
 
 % Compute the distance matrix between feature points and mesh vertices
 % feaDisMat = zeros(length(shape.featurePointIds), numPoints);

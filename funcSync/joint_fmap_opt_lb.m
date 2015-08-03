@@ -17,7 +17,7 @@ for id = 1:length(Data.initial_maps)
     Data.initial_maps{id}.corres = [Data.initial_maps{id}.corres; ones(1,n)];
 end
 
-n = length(Data.models);
+n = length(Data.shapes);
 m = length(Data.basis{1}.vals);
 
 % Perform alternating optimization
@@ -39,7 +39,7 @@ for oIter = 1:Para.nIters_outer
             corresW = sqrt(corres(3,:));
             corresW = corresW*size(Fs,1)/length(corresW);
             % Weight the functions
-            [fmaps{id}.X, eij] = fmap_fitting_normalized(Fs, Ft, corresW,...
+            [fmaps{id}.X, eij] = fmap_fitting(Fs, Ft, corresW,...
                 Y(sIds,:)*sqrt(Para.mu),...
                 Y(tIds,:)*sqrt(Para.mu),...
                 Data.basis{sId}.vals,...

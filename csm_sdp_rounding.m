@@ -1,8 +1,8 @@
-function [consistentSampleIds] = csm_sdp_rounding(Data, X, Para)
+function [consistentVertexIds] = csm_sdp_rounding(Data, X, Para)
 %
 [U,V] = eig(X);
-m0 = Para.numMatchedPoints;
-m = Para.numSamples;
+m0 = Para.m0;
+m = Para.m;
 n = length(Data.shapes);
 v = diag(V)';
 [s,ids] = sort(v);
@@ -28,4 +28,9 @@ for i = (Para.rootId+1):n
     sol = lapjv(Y_exp, 0.0);
     sol = sol(1:m0);
     consistentSampleIds(:,i) = sol';
+end
+
+consistentVertexIds = consistentSampleIds;
+for i = 1:n
+    consistentVertexIds(:,i) = Data.SAMPLE{i}.sampleIds(consistentSampleIds(:,i)); 
 end
