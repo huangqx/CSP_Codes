@@ -18,16 +18,20 @@ m0 = Para.m0;
 n = length(Data.shapes);
 dim = 1+m*n;
 
-[sampleMaps, distMats] = vertexMap_2_sampleMaps(Data, m);
+% Compute the maximum diameters
+for i = 1:length(Data.shapes)
+    diat(i) = max(max(Data.SAMPLE{i}.distMat));
+end
+mean_diat = mean(diat);
 
 C = zeros(dim, dim);
-for mapId = 1:length(sampleMaps)
-    map = sampleMaps{mapId};
+for mapId = 1:length(Data.initial_maps)
+    map = Data.initial_maps{mapId};
 %    [C_st] = pairwise_data_matrix(distMats{map.tId},...
 %        map.corres, m0, m);
     [C_st] = pairwise_data_matrix(Data.SAMPLE{map.sId},...
         Data.SAMPLE{map.tId},...
-        Data.initial_maps{mapId}.corres, m0, m);
+        map.corres, m0, m, mean_diat);
 
     rowIds = ((map.sId-1)*m + 2):(map.sId*m+1);
     colIds = ((map.tId-1)*m + 2):(map.tId*m+1);
@@ -41,34 +45,35 @@ SDP.C = (SDP.C+SDP.C')/2;
 
 [SDP.A, SDP.b, SDP.ids_geq_0, SDP.ids_leq_1] = gen_constraints(...
     n, m0, m, rootId);
+% 
+% function [sampleMaps, distMats] = vertexMap_2_sampleMaps(Data, m)
+% % Convert maps between vertices into maps between sample points (m per
+% % shape)
+% 
+% for shapeId = 1:length(Data.SAMPLE)
+%     Sample = Data.SAMPLE{shapeId};
+%     % Extract distance matrix and closestSampleIds
+%     distMats{shapeId} = Sample.distMat(1:m, Sample.sampleIds(1:m));
+%     [s, closestSampleIds{shapeId}] = min(Sample.distMat(1:m,:));
+% end
 
-function [sampleMaps, distMats] = vertexMap_2_sampleMaps(Data, m)
-% Convert maps between vertices into maps between sample points (m per
-% shape)
+% for mapId = 1:length(Data.initial_maps)
+%     map = Data.initial_maps{mapId};
+%     sampleIds_s = 1:m;
+%     vertexIds_s = Data.SAMPLE{map.sId}.sampleIds(sampleIds_s);
+%     vertexIds_t = map.corres(2, vertexIds_s);
+%     sampleIds_t = closestSampleIds{map.tId}(vertexIds_t);
+%     map.corres = [sampleIds_s;sampleIds_t];
+%     sampleMaps{mapId} = map;
+% end
 
-for shapeId = 1:length(Data.SAMPLE)
-    Sample = Data.SAMPLE{shapeId};
-    % Extract distance matrix and closestSampleIds
-    distMats{shapeId} = Sample.distMat(1:m, Sample.sampleIds(1:m));
-    [s, closestSampleIds{shapeId}] = min(Sample.distMat(1:m,:));
-end
-
-for mapId = 1:length(Data.initial_maps)
-    map = Data.initial_maps{mapId};
-    sampleIds_s = 1:m;
-    vertexIds_s = Data.SAMPLE{map.sId}.sampleIds(sampleIds_s);
-    vertexIds_t = map.corres(2, vertexIds_s);
-    sampleIds_t = closestSampleIds{map.tId}(vertexIds_t);
-    map.corres = [sampleIds_s;sampleIds_t];
-    sampleMaps{mapId} = map;
-end
-
-function [C_st] = pairwise_data_matrix(Sample_s, Sample_t, corres_st, m0, m)
+function [C_st] = pairwise_data_matrix(Sample_s, Sample_t, corres_st,...
+    m0, m, mean_diat)
 %
 %C_st = min(1, distMat_t(corres_st(2,:),:));
 sVIds = Sample_s.sampleIds(1:m);
 tVIds = corres_st(2, sVIds);
-C_st = min(1, Sample_t.distMat(1:m, tVIds)');
+C_st = min(mean_diat/3, Sample_t.distMat(1:m, tVIds)');
 
 % Favor points that are sampled early
 t = (floor(m/m0)+1)^2;
